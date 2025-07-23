@@ -4,7 +4,6 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
-import android.provider.ContactsContract
 import android.provider.Settings
 import android.util.Log
 import androidx.compose.animation.Animatable
@@ -37,8 +36,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.psethi.zenselect.R
 import com.psethi.zenselect.manager.ZenManager
@@ -60,7 +57,9 @@ fun LandingScreen() {
 
     val color = remember { Animatable(Color.Blue) }
     var isAnimating by remember { mutableStateOf(false) }
-    val mediaPlayer = MediaPlayer.create(context, R.raw.calm_music)
+    var mediaPlayer: MediaPlayer? by remember {
+        mutableStateOf(null)
+    }
 
     // LaunchedEffect composable to animate when start button is clicked
     LaunchedEffect(isAnimating) {
@@ -86,15 +85,20 @@ fun LandingScreen() {
                 //timeLeft = timeInSecs/60
                 Log.i("Landing Screen","Time left: $showTimeLeft")
             }
+            Log.i("Landing Screen","Time left before disable zen mode: $showTimeLeft")
             zenManager.disableZenMode()
             isRunning = false
             isAnimating = false
         }
     }
     if(!isRunning) {
-        mediaPlayer.stop()
-        mediaPlayer.reset()
-        input = ""
+        if(mediaPlayer?.isPlaying == true) {
+            Log.i("Landing Screen","Time left before stop media player: $showTimeLeft")
+            mediaPlayer!!.release()
+            mediaPlayer = null
+            input = ""
+        }
+
     }
     Column(modifier = Modifier
         .fillMaxWidth()
@@ -158,8 +162,8 @@ fun LandingScreen() {
                     isRunning = true
                     isAnimating = true
                     timeLeft = input.toInt()
-                    mediaPlayer.start()
-                    mediaPlayer.isLooping = true
+                    mediaPlayer = setupMediaPlayer(context = context)
+
                 },
                 modifier = Modifier.padding(16.dp)) {
                 Text(
@@ -172,6 +176,15 @@ fun LandingScreen() {
     }
 
 }
+
+private fun setupMediaPlayer(context: Context): MediaPlayer {
+    val mediaPlayer = MediaPlayer.create(context, R.raw.calm_music).apply {
+        start()
+        isLooping = true
+    }
+    return mediaPlayer
+}
+
 
 fun formatTime(seconds: Int): String {
     val (mins, secs) = secondsToMinutesAndSeconds(seconds)
